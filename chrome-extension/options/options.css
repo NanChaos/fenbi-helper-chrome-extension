@@ -1,0 +1,221 @@
+/* 选项页：宽一点的常规设置页（不是侧边栏窄栏） */
+body {
+  font-size: 14px;
+  background: var(--bg-soft);
+}
+
+.wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+}
+
+.page-head h1 {
+  font-size: 20px;
+  margin: 0 0 4px;
+}
+
+.page-head {
+  margin-bottom: 18px;
+}
+
+.card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 18px 12px;
+  margin-bottom: 18px;
+}
+
+.card h2 {
+  font-size: 15px;
+  margin: 0 0 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.row.col {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.row > label {
+  width: 96px;
+  flex: none;
+  font-size: 13px;
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.row.col > label {
+  width: auto;
+  text-align: left;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin: 0 0 12px 106px;
+  line-height: 1.6;
+}
+
+.row.col .hint {
+  margin-left: 0;
+}
+
+.block-hint {
+  margin: 0 0 16px;
+}
+
+input[type='text'],
+input[type='password'],
+input[type='number'],
+textarea,
+select {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid var(--brand-soft);
+  border-color: var(--brand);
+}
+
+.grow-input {
+  flex: 1;
+  min-width: 220px;
+}
+
+textarea {
+  width: 100%;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+/* 分段控件（主题模式） */
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.seg button {
+  border-radius: 0;
+  padding: 6px 14px;
+  font-size: 13px;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+}
+
+.seg button:last-child {
+  border-right: none;
+}
+
+.seg button.active {
+  background: var(--brand);
+  color: var(--on-accent, #fff);
+}
+
+/* 主题色色板 */
+.swatches {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sw {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  box-shadow: 0 0 0 1px var(--border);
+  cursor: pointer;
+  padding: 0;
+}
+
+.sw.active {
+  border-color: var(--text);
+}
+
+.accent-custom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+input[type='color'] {
+  width: 34px;
+  height: 28px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  cursor: pointer;
+}
+
+input.hex {
+  width: 88px;
+  font-family: ui-monospace, Consolas, monospace;
+}
+
+.mono {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12px;
+  min-width: 28px;
+}
+
+input[type='range'] {
+  width: 180px;
+  accent-color: var(--brand);
+}
+
+button.link,
+a.link {
+  background: none;
+  border: none;
+  color: var(--brand);
+  font-size: 12px;
+  padding: 4px 6px;
+  text-decoration: none;
+}
+
+button.link:hover,
+a.link:hover {
+  text-decoration: underline;
+  filter: none;
+}
+
+a.doc {
+  font-size: 12px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ok-text {
+  color: var(--ok);
+}
+
+.err-text {
+  color: var(--err);
+}

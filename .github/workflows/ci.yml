@@ -1,0 +1,67 @@
+# 每次 push / PR 做一次静态自检，并顺手产出一份可直接加载的扩展 zip
+# （PR 里可以下载 zip 手动验一遍，不用等发版）
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 准备 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 校验 manifest.json
+        run: |
+          jq -e '.manifest_version == 3' chrome-extension/manifest.json > /dev/null \
+            || { echo "::error::manifest_version 不是 3"; exit 1; }
+          jq -e '.side_panel.default_path' chrome-extension/manifest.json > /dev/null
+          jq -e '.options_page' chrome-extension/manifest.json > /dev/null
+          echo "扩展版本：$(jq -r '.version' chrome-extension/manifest.json)"
+
+      - name: 检查 manifest 里引用的文件都存在
+        run: |
+          set -e
+          cd chrome-extension
+          jq -r '[.background.service_worker, .side_panel.default_path, .options_page,
+                  .icons[], .action.default_icon[]] | unique | .[]' manifest.json | while read -r f; do
+            if [ -f "$f" ]; then echo "ok   $f"; else echo "::error::manifest 引用了不存在的文件 $f"; exit 1; fi
+          done
+
+      - name: JS 语法检查
+        run: |
+          set -e
+          find chrome-extension -name '*.js' | sort | while read -r f; do
+            node --check "$f"
+            echo "ok   $f"
+          done
+
+      - name: 打包（干跑产物，供手工验证）
+        working-directory: chrome-extension
+        run: |
+          zip -qr "../ci-${GITHUB_SHA}.zip" . \
+            -x ".DS_Store" "*/.DS_Store" ".idea/*" "*.log" \
+               "icons/src-1024.png" "icons/make-icons.py"
+          cd ..
+          unzip -l "ci-${GITHUB_SHA}.zip"
+
+      - name: 上传 zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-${{ github.sha }}
+          path: ci-${{ github.sha }}.zip
+          if-no-files-found: error

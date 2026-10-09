@@ -1,0 +1,169 @@
+/* 主题：默认浅色；dark 可由系统偏好或 <html data-theme="dark"> 触发
+   --accent 由 JS（设置页）写到 <html style> 上，--brand/--brand-soft 都从它派生 */
+:root {
+  --bg: #ffffff;
+  --bg-soft: #f6f7f9;
+  --bg-soft-2: #eef0f3;
+  --border: #e5e7eb;
+  --text: #1f2328;
+  --text-dim: #6b7280;
+  --accent: #f2632a;
+  --brand: var(--accent);
+  /* 主题色的浅底：按当前背景稀释，深浅主题自动适配 */
+  --brand-soft: color-mix(in srgb, var(--brand) 14%, var(--bg));
+  --on-accent: #ffffff;
+  --ok: #16a34a;
+  --ok-soft: #f0fdf4;
+  --err: #dc2626;
+  --err-soft: #fef2f2;
+  --warn-soft: #fff7ed;
+  --warn: #c2410c;
+  --shadow: rgba(17, 20, 24, 0.18);
+  --img-bg: transparent;
+  --radius: 10px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #16181d;
+    --bg-soft: #1f2229;
+    --bg-soft-2: #262a32;
+    --border: #333842;
+    --text: #e6e8ec;
+    --text-dim: #9aa1ad;
+    /* 深色下主题色稍微提亮，否则在深背景上发闷 */
+    --brand: color-mix(in srgb, var(--accent) 84%, #ffffff);
+    --ok: #4ade80;
+    --ok-soft: #14251b;
+    --err: #f87171;
+    --err-soft: #2c1618;
+    --warn-soft: #2e2013;
+    --warn: #fdba74;
+    --shadow: rgba(0, 0, 0, 0.5);
+    --img-bg: #f2f3f5;
+    color-scheme: dark;
+  }
+}
+
+/* 手动强制深色（不依赖系统） */
+:root[data-theme='dark'] {
+  --bg: #16181d;
+  --bg-soft: #1f2229;
+  --bg-soft-2: #262a32;
+  --border: #333842;
+  --text: #e6e8ec;
+  --text-dim: #9aa1ad;
+  /* 深色下主题色稍微提亮 */
+  --brand: color-mix(in srgb, var(--accent) 84%, #ffffff);
+  --ok: #4ade80;
+  --ok-soft: #14251b;
+  --err: #f87171;
+  --err-soft: #2c1618;
+  --warn-soft: #2e2013;
+  --warn: #fdba74;
+  --shadow: rgba(0, 0, 0, 0.5);
+  --img-bg: #f2f3f5;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* 作者样式里的 display:flex 会盖掉 UA 的 [hidden]{display:none}，必须强制 */
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+button {
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  background: var(--bg-soft-2);
+  color: var(--text);
+  transition: all 0.15s;
+}
+
+button:hover {
+  filter: brightness(0.96);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) button:hover {
+    filter: brightness(1.18);
+  }
+}
+
+:root[data-theme='dark'] button:hover {
+  filter: brightness(1.18);
+}
+
+button.primary {
+  background: var(--brand);
+  color: var(--on-accent, #fff);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.muted {
+  color: var(--text-dim);
+}
+
+.small {
+  font-size: 12px;
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.msg {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.msg.err {
+  background: var(--err-soft);
+  color: var(--err);
+}
+
+.msg.ok {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.spin {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: -2px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

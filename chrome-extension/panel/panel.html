@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="color-scheme" content="light dark" />
+    <title>粉笔刷题</title>
+    <link rel="stylesheet" href="../common.css" />
+    <link rel="stylesheet" href="panel.css" />
+  </head>
+  <body>
+    <header>
+      <span class="logo">粉笔刷题</span>
+      <select id="courseSel" title="默认科目（切换后自动记住，下次打开生效）"></select>
+      <span class="grow"></span>
+      <button id="btnSettings" class="iconbtn icononly" title="设置">⚙️</button>
+      <button id="btnTheme" class="iconbtn icononly" title="主题">🌓</button>
+      <span class="dot" id="dot"></span>
+      <span id="acctName" class="acct ellipsis" hidden></span>
+      <button id="btnLogout" class="iconbtn" title="退出登录" hidden>退出</button>
+      <button id="btnLogin" class="iconbtn primary" title="扫码登录" hidden>登录</button>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab active" data-view="pick">选题</button>
+      <button class="tab" data-view="quiz">做题</button>
+    </nav>
+
+    <!-- 选题 -->
+    <section id="viewPick" class="view">
+      <div class="quickbar">
+        <button id="btnQuick" class="primary">
+          <span class="qk-title">⚡ 快速练习</span>
+          <span class="qk-sub">15 题 · 不限考点</span>
+        </button>
+      </div>
+      <div class="subtabs">
+        <button class="stab active" data-pane="tree">考点</button>
+        <button class="stab" data-pane="hist">历史</button>
+      </div>
+      <div class="scroll">
+        <div id="paneTree"><div class="muted small">加载中…</div></div>
+        <div id="paneHist" hidden><div class="muted small">加载中…</div></div>
+      </div>
+    </section>
+
+    <!-- 做题 -->
+    <section id="viewQuiz" class="view" hidden>
+      <div class="qbar">
+        <span id="exerciseName" class="small muted ellipsis"></span>
+        <span class="grow"></span>
+        <span id="progress" class="small muted"></span>
+        <button id="btnToggleSol" class="iconbtn" hidden>展开解析</button>
+      </div>
+      <div class="scroll" id="content">
+        <div class="empty">← 去「选题」挑个考点开始</div>
+      </div>
+      <footer>
+        <button id="btnAgain" hidden>再来一组</button>
+        <button id="btnSubmit" class="primary" hidden>交卷</button>
+      </footer>
+    </section>
+
+    <!-- 登录弹窗 -->
+    <div id="modal" class="modal" hidden>
+      <div class="modal-box">
+        <button id="modalClose" class="modal-x" title="关闭">×</button>
+        <div id="meBox"></div>
+      </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script src="../vendor/qrcode.min.js"></script>
+    <script src="../api/fenbi-api.js"></script>
+    <script src="../api/ai-providers.js"></script>
+    <script src="panel.js"></script>
+  </body>
+</html>

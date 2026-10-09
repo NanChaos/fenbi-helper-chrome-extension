@@ -1,0 +1,94 @@
+# 打 tag push 即自动发版：
+#   git tag v0.7.0 && git push origin v0.7.0
+# 也可以在 GitHub 网页 Actions → Release → Run workflow 手动触发（需填 tag）。
+#
+# 产物：fenbi-helper-chrome-extension-vX.Y.Z.zip
+# zip 内直接就是 manifest.json 所在层级 —— 解压后可被 Chrome「加载已解压的扩展」直接识别。
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '要发布的 tag，形如 v0.7.1（需与 manifest.json 的 version 一致）'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 解析发布 tag
+        id: ref
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          case "$TAG" in
+            v*) : ;;
+            *) echo "::error::tag 必须以 v 开头，形如 v0.7.0"; exit 1 ;;
+          esac
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: 读取扩展版本
+        id: meta
+        run: |
+          VERSION="$(jq -r '.version' chrome-extension/manifest.json)"
+          NAME="$(jq -r '.name' chrome-extension/manifest.json)"
+          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+            echo "::error::无法从 chrome-extension/manifest.json 读取 version"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "zip=fenbi-helper-chrome-extension-v${VERSION}.zip" >> "$GITHUB_OUTPUT"
+
+      - name: 校验 tag 与 manifest 版本一致
+        run: |
+          TAG_VERSION="${{ steps.ref.outputs.tag }}"
+          TAG_VERSION="${TAG_VERSION#v}"
+          MANIFEST_VERSION="${{ steps.meta.outputs.version }}"
+          if [ "$TAG_VERSION" != "$MANIFEST_VERSION" ]; then
+            echo "::error::tag($TAG_VERSION) 与 chrome-extension/manifest.json 的 version($MANIFEST_VERSION) 不一致"
+            echo "请把 manifest.json 改成 \"$TAG_VERSION\" 后重新打 tag"
+            exit 1
+          fi
+
+      - name: 打包扩展
+        working-directory: chrome-extension
+        run: |
+          zip -r "../${{ steps.meta.outputs.zip }}" . \
+            -x ".DS_Store" "*/.DS_Store" ".idea/*" "*.log" \
+               "icons/src-1024.png" "icons/make-icons.py"
+          cd ..
+          echo "=== zip 内容 ==="
+          unzip -l "${{ steps.meta.outputs.zip }}"
+
+      - name: 产出到本地 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.zip }}
+          path: ${{ steps.meta.outputs.zip }}
+          if-no-files-found: error
+
+      - name: 创建 GitHub Release 并上传 zip
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ref.outputs.tag }}
+          name: ${{ steps.meta.outputs.name }} ${{ steps.ref.outputs.tag }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: ${{ steps.meta.outputs.zip }}

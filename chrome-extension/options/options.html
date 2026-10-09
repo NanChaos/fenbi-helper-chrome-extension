@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="color-scheme" content="light dark" />
+    <title>粉笔刷题助手 · 设置</title>
+    <link rel="stylesheet" href="../common.css" />
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="page-head">
+        <h1>粉笔刷题助手 · 设置</h1>
+        <span class="muted small">右侧栏顶栏的齿轮按钮也能打开这里</span>
+      </header>
+
+      <!-- ============ 外观 ============ -->
+      <section class="card">
+        <h2>外观</h2>
+
+        <div class="row">
+          <label>主题模式</label>
+          <div class="seg" id="themeSeg">
+            <button data-theme="" type="button">跟随系统</button>
+            <button data-theme="light" type="button">浅色</button>
+            <button data-theme="dark" type="button">深色</button>
+          </div>
+        </div>
+
+        <div class="row">
+          <label>主题色</label>
+          <div class="swatches" id="swatches"></div>
+          <div class="accent-custom">
+            <input type="color" id="accentPicker" title="自定义主题色" />
+            <input type="text" id="accentHex" class="hex" maxlength="7" spellcheck="false" />
+            <button id="accentReset" class="link" type="button">恢复默认</button>
+          </div>
+        </div>
+        <p class="hint">主题色会自动派生深色模式下的配色与按钮文字颜色。</p>
+      </section>
+
+      <!-- ============ AI ============ -->
+      <section class="card">
+        <h2>AI 解析</h2>
+        <p class="hint block-hint">
+          配置后，做题页每条解析旁边会出现「✨ AI 解析」，点击即按本题内容向你选择的模型提问（流式输出）。
+        </p>
+
+        <div class="row">
+          <label>平台</label>
+          <select id="aiProvider"></select>
+          <a class="link doc" id="aiDoc" href="#" target="_blank" rel="noreferrer" hidden>控制台</a>
+        </div>
+
+        <div class="row">
+          <label>API 地址</label>
+          <input type="text" id="aiBase" class="grow-input" spellcheck="false" placeholder="https://api.deepseek.com/v1" />
+        </div>
+        <p class="hint" id="baseHint">填到含版本号的完整前缀，程序会自动拼接 /chat/completions 与 /models。</p>
+
+        <div class="row">
+          <label>API Key</label>
+          <input type="password" id="aiKey" class="grow-input" spellcheck="false" placeholder="sk-..." />
+          <button id="btnToggleKey" class="link" type="button">显示</button>
+        </div>
+        <p class="hint">仅保存在本机 chrome.storage.local，不会上传任何第三方。</p>
+
+        <div class="row">
+          <label>模型</label>
+          <input type="text" id="aiModel" class="grow-input" list="aiModelList" spellcheck="false" placeholder="选择或手动输入" />
+          <datalist id="aiModelList"></datalist>
+          <button id="btnModels" type="button">拉取列表</button>
+        </div>
+        <p class="hint" id="modelHint"></p>
+
+        <div class="row">
+          <label>温度</label>
+          <input type="range" id="aiTemp" min="0" max="1" step="0.1" />
+          <span id="aiTempVal" class="mono"></span>
+        </div>
+        <p class="hint">解析类任务建议 0.1 ~ 0.4，越低越稳。</p>
+
+        <div class="row">
+          <label>最大输出</label>
+          <input type="number" id="aiMaxTok" min="128" max="8192" step="128" />
+          <span class="muted small">tokens</span>
+        </div>
+
+        <div class="row">
+          <label>超时</label>
+          <input type="number" id="aiTimeout" min="10" max="300" step="5" />
+          <span class="muted small">秒</span>
+        </div>
+
+        <div class="row">
+          <label>附带官方解析</label>
+          <input type="checkbox" id="aiUseOfficial" />
+          <span class="hint">把粉笔官方解析一起喂给 AI，讲解更准，但更耗 token</span>
+        </div>
+
+        <div class="row col">
+          <label>自定义请求头（JSON，可选）</label>
+          <textarea id="aiHeaders" rows="2" spellcheck="false" placeholder='{"HTTP-Referer": "https://example.com"}'></textarea>
+          <span class="hint">走中转/网关时需要，如 OpenRouter 的 HTTP-Referer、自建代理的鉴权头。</span>
+        </div>
+
+        <div class="row col">
+          <label>系统提示词</label>
+          <textarea id="aiPrompt" rows="9" spellcheck="false"></textarea>
+          <button id="btnPromptReset" class="link" type="button">恢复默认</button>
+        </div>
+
+        <div class="row">
+          <label></label>
+          <button id="btnTest" type="button">测试连接</button>
+          <span id="testResult" class="small muted"></span>
+        </div>
+      </section>
+
+      <div class="actions">
+        <button id="btnSave" class="primary" type="button">保存</button>
+        <button id="btnReset" type="button">恢复默认</button>
+        <span id="saveTip" class="small muted"></span>
+      </div>
+    </div>
+
+    <script src="../api/ai-providers.js"></script>
+    <script src="options.js"></script>
+  </body>
+</html>

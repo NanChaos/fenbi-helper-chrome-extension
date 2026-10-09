@@ -1,0 +1,20 @@
+# WorkBuddy 工作区数据（含个人笔记 / 会话记录，勿提交）
+.workbuddy/
+
+# 抓包截图（含真实登录二维码与账号信息，勿提交）
+shots/
+
+# 依赖与系统噪声
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+
+# IDE / 编辑器
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.sublime-project
+*.sublime-workspace
