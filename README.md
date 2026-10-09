@@ -2,9 +2,9 @@
 
 AI 写的粉笔插件，方便摸鱼刷题，加油
 
-[![CI](https://github.com/NanChaos/fenbi-helper-chrome-extension/actions/workflows/ci.yml/badge.svg)](https://github.com/NanChaos/fenbi-helper-chrome-extension/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/NanChaos/fenbi-helper-chrome-extension)](https://github.com/NanChaos/fenbi-helper-chrome-extension/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://github.com/NanChaos/fenbi-helper-chrome-extension/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/NanChaos/fenbi-helper-chrome-extension/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/NanChaos/fenbi-helper-chrome-extension?cacheSeconds=0)](https://github.com/NanChaos/fenbi-helper-chrome-extension/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/NanChaos/fenbi-helper-chrome-extension/blob/main/LICENSE)
 
 ## 预览
 ![img_3.png](docs/assets/img_3.png)
