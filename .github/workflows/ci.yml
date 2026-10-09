@@ -13,8 +13,13 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
+    name: 静态自检 + 打包
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
@@ -25,13 +30,22 @@ jobs:
         with:
           node-version: 22
 
-      - name: 校验 manifest.json
+      - name: 准备 zip
+        run: command -v zip >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y zip)
+
+      - name: 校验 manifest.json 结构
         run: |
-          jq -e '.manifest_version == 3' chrome-extension/manifest.json > /dev/null \
-            || { echo "::error::manifest_version 不是 3"; exit 1; }
-          jq -e '.side_panel.default_path' chrome-extension/manifest.json > /dev/null
-          jq -e '.options_page' chrome-extension/manifest.json > /dev/null
-          echo "扩展版本：$(jq -r '.version' chrome-extension/manifest.json)"
+          set -e
+          M=chrome-extension/manifest.json
+          jq -e '.manifest_version == 3' "$M" >/dev/null \
+            || { echo "::error::manifest_version 必须是 3"; exit 1; }
+          for k in name version description background.service_worker side_panel.default_path options_page; do
+            jq -e ".$k" "$M" >/dev/null \
+              || { echo "::error::manifest.json 缺少字段: $k"; exit 1; }
+          done
+          jq -e '.version | test("^[0-9]+(\\.[0-9]+){1,3}$")' "$M" >/dev/null \
+            || { echo "::error::version 必须是形如 0.7.0 的数字版本号"; exit 1; }
+          echo "扩展：$(jq -r '.name' "$M") v$(jq -r '.version' "$M")"
 
       - name: 检查 manifest 里引用的文件都存在
         run: |
@@ -42,12 +56,33 @@ jobs:
             if [ -f "$f" ]; then echo "ok   $f"; else echo "::error::manifest 引用了不存在的文件 $f"; exit 1; fi
           done
 
+      - name: 检查 HTML 引用的本地资源都存在
+        run: |
+          set -e
+          cd chrome-extension
+          for html in $(find . -name '*.html' | sort); do
+            dir="$(dirname "$html")"
+            grep -oE '(src|href)="[^"]+"' "$html" \
+              | sed -E 's/.*="([^"]+)"/\1/' \
+              | grep -vE '^(https?:)?//|^#|^data:' \
+              | while read -r r; do
+                  p="$dir/${r%%\?*}"
+                  if [ -f "$p" ]; then echo "ok   $html -> $r"; else echo "::error::$html 引用了不存在的资源 $r"; exit 1; fi
+                done
+          done
+
+      - name: JSON 语法检查
+        run: |
+          set -e
+          find . -name '*.json' -not -path './node_modules/*' | sort | while read -r f; do
+            jq empty "$f" && echo "ok   $f"
+          done
+
       - name: JS 语法检查
         run: |
           set -e
           find chrome-extension -name '*.js' | sort | while read -r f; do
-            node --check "$f"
-            echo "ok   $f"
+            node --check "$f" && echo "ok   $f"
           done
 
       - name: 打包（干跑产物，供手工验证）
@@ -57,6 +92,7 @@ jobs:
             -x ".DS_Store" "*/.DS_Store" ".idea/*" "*.log" \
                "icons/src-1024.png" "icons/make-icons.py"
           cd ..
+          echo "=== zip 内容 ==="
           unzip -l "ci-${GITHUB_SHA}.zip"
 
       - name: 上传 zip
@@ -65,3 +101,13 @@ jobs:
           name: ci-${{ github.sha }}
           path: ci-${{ github.sha }}.zip
           if-no-files-found: error
+
+      - name: 写运行摘要
+        run: |
+          {
+            echo "### CI 结果"
+            echo ""
+            echo "- 提交：\`${GITHUB_SHA}\`"
+            echo "- 扩展版本：v$(jq -r '.version' chrome-extension/manifest.json)"
+            echo "- 产物：\`ci-${GITHUB_SHA}.zip\`（zip 内即为 manifest.json 所在层级，可被 Chrome「加载已解压的扩展」直接识别）"
+          } >> "$GITHUB_STEP_SUMMARY"

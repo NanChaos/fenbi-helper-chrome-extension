@@ -86,6 +86,23 @@ Key 只存在本机 `chrome.storage.local`，不会上传任何第三方。请�
 
 完整接口清单、参数与返回值见 [`docs/fenbi-api-notes.md`](docs/fenbi-api-notes.md)。
 
+### CI/CD 与发版
+
+| 工作流 | 触发时机 | 产物 |
+| --- | --- | --- |
+| [CI](.github/workflows/ci.yml) | push / PR 到 `main`，或手动触发 | 静态自检 + `ci-<sha>.zip`（Actions Artifact） |
+| [Release](.github/workflows/release.yml) | ① push `main` 且 `manifest.json` 的 version 没发过 ② push tag `v*` ③ 手动触发（可指定版本 / 勾选 force 重发） | `fenbi-helper-chrome-extension-vX.Y.Z.zip` + GitHub Release |
+
+发新版本只需两步：把 `chrome-extension/manifest.json` 的 `version` 加一，然后推到 `main`，Release 工作流会自动建 tag 并发版：
+
+```bash
+# 1. version: 0.7.0 -> 0.7.1
+# 2.
+git push origin main
+```
+
+也可以手动补发当前版本：Actions → Release → Run workflow（`tag` 留空即取 manifest 版本；版本已存在时勾选 `force` 覆盖产物）。
+
 ## 声明
 
 本项目是对粉笔 Web 端的个人学习与自用工具，**并非粉笔官方产品**，与粉笔无任何关联。接口行为可能随时变动，请勿用于商业用途，也不要对服务端发起超出正常使用频率的请求。

@@ -1,6 +1,7 @@
-# 打 tag push 即自动发版：
-#   git tag v0.7.0 && git push origin v0.7.0
-# 也可以在 GitHub 网页 Actions → Release → Run workflow 手动触发（需填 tag）。
+# 发版流程（三种入口，任选其一）：
+#   1) push 到 main 且 manifest.json 的 version 没发过  -> 自动发版（推荐）
+#   2) push tag：git tag v0.7.1 && git push origin v0.7.1 -> 发版
+#   3) Actions → Release → Run workflow 手动触发（可指定版本，留空则取 manifest 版本）
 #
 # 产物：fenbi-helper-chrome-extension-vX.Y.Z.zip
 # zip 内直接就是 manifest.json 所在层级 —— 解压后可被 Chrome「加载已解压的扩展」直接识别。
@@ -9,86 +10,150 @@ name: Release
 
 on:
   push:
+    branches: [main]
     tags:
       - 'v*'
   workflow_dispatch:
     inputs:
       tag:
-        description: '要发布的 tag，形如 v0.7.1（需与 manifest.json 的 version 一致）'
-        required: true
+        description: '要发布的版本，形如 v0.7.1；留空则自动读取 manifest.json 的 version'
+        required: false
+      force:
+        description: '该版本已存在时仍重新发布（覆盖同名产物）'
+        required: false
+        default: 'false'
 
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   release:
+    name: 打包并发版
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      INPUT_TAG: ${{ inputs.tag }}
+      INPUT_FORCE: ${{ inputs.force }}
+      EVENT_NAME: ${{ github.event_name }}
+      REF_TYPE: ${{ github.ref_type }}
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: 解析发布 tag
-        id: ref
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TAG="${{ inputs.tag }}"
-          else
-            TAG="${GITHUB_REF_NAME}"
-          fi
-          case "$TAG" in
-            v*) : ;;
-            *) echo "::error::tag 必须以 v 开头，形如 v0.7.0"; exit 1 ;;
-          esac
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+      - name: 准备 zip
+        run: command -v zip >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y zip)
 
-      - name: 读取扩展版本
+      - name: 解析版本号
         id: meta
         run: |
+          set -e
           VERSION="$(jq -r '.version' chrome-extension/manifest.json)"
           NAME="$(jq -r '.name' chrome-extension/manifest.json)"
           if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
             echo "::error::无法从 chrome-extension/manifest.json 读取 version"
             exit 1
           fi
+          if [ -n "$INPUT_TAG" ]; then
+            TAG="$INPUT_TAG"
+            case "$TAG" in v*) : ;; *) TAG="v$TAG" ;; esac
+            if [ "${TAG#v}" != "$VERSION" ]; then
+              echo "::error::手动指定的版本($TAG) 与 manifest.json 的 version($VERSION) 不一致"
+              echo "请改成一致后重试，或修改 manifest.json 的 version 再提交"
+              exit 1
+            fi
+          else
+            TAG="v$VERSION"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
           echo "zip=fenbi-helper-chrome-extension-v${VERSION}.zip" >> "$GITHUB_OUTPUT"
+          echo "将发布：$NAME $TAG"
 
-      - name: 校验 tag 与 manifest 版本一致
+      - name: 判断发布策略
+        id: gate
         run: |
-          TAG_VERSION="${{ steps.ref.outputs.tag }}"
-          TAG_VERSION="${TAG_VERSION#v}"
-          MANIFEST_VERSION="${{ steps.meta.outputs.version }}"
-          if [ "$TAG_VERSION" != "$MANIFEST_VERSION" ]; then
-            echo "::error::tag($TAG_VERSION) 与 chrome-extension/manifest.json 的 version($MANIFEST_VERSION) 不一致"
-            echo "请把 manifest.json 改成 \"$TAG_VERSION\" 后重新打 tag"
-            exit 1
+          set -e
+          TAG="${{ steps.meta.outputs.tag }}"
+          EXISTS_TAG=false
+          if git ls-remote --tags origin "refs/tags/$TAG" | grep -q "refs/tags/$TAG$"; then
+            EXISTS_TAG=true
           fi
+          if [ "$EVENT_NAME" = "push" ] && [ "$REF_TYPE" = "tag" ]; then
+            MODE=publish          # 由 tag push 触发，tag 一定存在
+          elif [ "$INPUT_FORCE" = "true" ]; then
+            MODE=publish          # 手动强制重发
+          elif [ "$EXISTS_TAG" = true ]; then
+            MODE=skip             # main push 重复触发：该版本已发过，跳过
+          else
+            MODE=publish
+          fi
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "tag_exists=$EXISTS_TAG" >> "$GITHUB_OUTPUT"
+          echo "策略：$MODE（tag 已存在：$EXISTS_TAG）"
 
       - name: 打包扩展
+        if: steps.gate.outputs.mode == 'publish'
         working-directory: chrome-extension
         run: |
-          zip -r "../${{ steps.meta.outputs.zip }}" . \
+          zip -qr "../${{ steps.meta.outputs.zip }}" . \
             -x ".DS_Store" "*/.DS_Store" ".idea/*" "*.log" \
                "icons/src-1024.png" "icons/make-icons.py"
           cd ..
           echo "=== zip 内容 ==="
           unzip -l "${{ steps.meta.outputs.zip }}"
 
-      - name: 产出到本地 Artifact
+      - name: 产出到 Artifact
+        if: steps.gate.outputs.mode == 'publish'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.meta.outputs.zip }}
           path: ${{ steps.meta.outputs.zip }}
           if-no-files-found: error
 
-      - name: 创建 GitHub Release 并上传 zip
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.ref.outputs.tag }}
-          name: ${{ steps.meta.outputs.name }} ${{ steps.ref.outputs.tag }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          draft: false
-          prerelease: false
-          generate_release_notes: true
-          files: ${{ steps.meta.outputs.zip }}
+      - name: 创建 / 更新 GitHub Release
+        if: steps.gate.outputs.mode == 'publish'
+        run: |
+          set -e
+          TAG="${{ steps.meta.outputs.tag }}"
+          ZIP="${{ steps.meta.outputs.zip }}"
+          TITLE="${{ steps.meta.outputs.name }} $TAG"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG 已存在，覆盖同名产物"
+            gh release upload "$TAG" "$ZIP" --clobber
+            ACTION="更新"
+          else
+            # tag 不存在时由 gh 从当前 commit 自动创建
+            gh release create "$TAG" "$ZIP" \
+              --title "$TITLE" \
+              --generate-notes \
+              --target "${GITHUB_SHA}" \
+              --latest
+            ACTION="创建"
+          fi
+
+          {
+            echo "### Release $ACTION 成功"
+            echo ""
+            echo "- 版本：\`$TAG\`"
+            echo "- 产物：\`$ZIP\`"
+            echo "- 地址：https://github.com/${GITHUB_REPOSITORY}/releases/tag/$TAG"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 跳过说明
+        if: steps.gate.outputs.mode == 'skip'
+        run: |
+          {
+            echo "### Release 已跳过"
+            echo ""
+            echo "- 版本 \`${{ steps.meta.outputs.tag }}\` 已发布过，未重复发版"
+            echo "- 如需发布新版本：把 \`chrome-extension/manifest.json\` 的 \`version\` 加一后推到 main"
+            echo "- 如需覆盖当前版本：Actions → Release → Run workflow，勾选 force"
+          } >> "$GITHUB_STEP_SUMMARY"
